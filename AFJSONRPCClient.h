@@ -35,8 +35,14 @@
              success:(void (^)(AFHTTPRequestOperation *operation, id responseObject))success
              failure:(void (^)(AFHTTPRequestOperation *operation, NSError *error))failure;
 
+
+
 - (NSMutableURLRequest *)requestWithMethod:(NSString *)method 
                                 parameters:(NSObject *)parameters
                                  requestId:(NSString *)requestId;
+
+- (void)cancelAllHTTPOperationsWithMethod:(NSString *)method
+                                requestID:(NSString *)requestID
+                               completion:(void (^)(BOOL cancelled))completion;
 
 @end

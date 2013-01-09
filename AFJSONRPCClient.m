@@ -131,6 +131,43 @@ NSString * const AFJSONRPCErrorDomain = @"org.json-rpc";
     return request;
 }
 
+#pragma mark - Cancelling
+
+- (void)cancelAllHTTPOperationsWithMethod:(NSString *)method
+                                requestID:(NSString *)requestID
+                               completion:(void (^)(BOOL cancelled))completion {
+    NSString *URLStringToMatched = [self requestWithMethod:method
+                                                parameters:nil
+                                                 requestId:requestID].URL.absoluteString;
+    
+    BOOL cancelled = NO;
+    for (NSOperation *operation in [self.operationQueue operations]) {
+        if (![operation isKindOfClass:[AFHTTPRequestOperation class]]) {
+            continue;
+        }
+        
+//        BOOL hasMatchingMethod = !method || [method isEqualToString:[[(AFHTTPRequestOperation *)operation request] HTTPMethod]];
+        NSError *operationError = nil;
+        NSDictionary *httpBody = [NSJSONSerialization JSONObjectWithData:[[(AFHTTPRequestOperation *)operation request] HTTPBody]
+                                                                   options:0
+                                                                     error:&operationError];
+        if (operationError) {
+            NSLog(@"Error cancelling method %@: %@", method, operationError);
+        }
+        NSString *matchingMethod = [httpBody objectForKey:@"method"];
+        BOOL hasMatchingMethod = !method || [method isEqualToString:matchingMethod];
+        BOOL hasMatchingURL = [[[[(AFHTTPRequestOperation *)operation request] URL] absoluteString] isEqualToString:URLStringToMatched];
+        
+        if (hasMatchingMethod && hasMatchingURL) {
+            [operation cancel];
+            cancelled = YES;
+        }
+    }
+    if (completion) {
+        completion(cancelled);
+    }
+}
+
 - (void)dealloc
 {
     [_endpointURL release];
